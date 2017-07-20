@@ -23,25 +23,43 @@
     register: new_asb_project
     when: project.stdout.find( "{{ asb_project }}" ) == -1
 
+  #####
+  # Remember that 'rcm' builds are using an older branch of the broker
+  # Some features in the deployment template may not be available, such as
+  #     REGISTRY_NAME
+  # Goal is to build up a common command, then modify it as needed for newer
+  # features.
+  #####
+  - name: Create command line for processing template
+    set_fact:
+      cmd_process_asb_template: >-
+        {{ oc_cmd }}
+        process
+        -f {{ local_target_asb_template }}
+        -n {{ asb_project }}
+        -p BROKER_IMAGE={{ broker_image }}
+        -p ETCD_IMAGE={{ etcd_image }}
+        -p ETCD_PATH={{ etcd_path }}
+        -p REGISTRY_TYPE={{ broker_registry_type }}
+        -p REGISTRY_URL={{ broker_registry_url }}
+        -p DEV_BROKER={{ broker_dev_broker }}
+        -p DOCKERHUB_ORG={{ dockerhub_org_name }}
+        -p DOCKERHUB_PASS={{ dockerhub_user_password }}
+        -p DOCKERHUB_USER={{ dockerhub_user_name }}
+        -p LAUNCH_APB_ON_BIND={{ broker_launch_apb_on_bind }}
+        -p OUTPUT_REQUEST={{ broker_output_request }}
+        -p RECOVERY={{ broker_recovery }}
+
+  - name: Modify command if running a non-rcm build to use newer features
+    set_fact:
+      cmd_process_asb_template: >-
+        {{ cmd_process_asb_template }}
+        -p REGISTRY_NAME={{ broker_registry_name }}
+    when: "not rcm"
+
   - name: Process template "{{ local_target_asb_template }}"
     shell: >
-      {{ oc_cmd }}
-      process
-      -f {{ local_target_asb_template }}
-      -n {{ asb_project }}
-      -p BROKER_IMAGE={{ broker_image }}
-      -p ETCD_IMAGE={{ etcd_image }}
-      -p ETCD_PATH={{ etcd_path }}
-      -p REGISTRY_TYPE={{ broker_registry_type }}
-      -p REGISTRY_URL={{ broker_registry_url }}
-      -p REGISTRY_NAME={{ broker_registry_name }}
-      -p DEV_BROKER={{ broker_dev_broker }}
-      -p DOCKERHUB_ORG={{ dockerhub_org_name }}
-      -p DOCKERHUB_PASS={{ dockerhub_user_password }}
-      -p DOCKERHUB_USER={{ dockerhub_user_name }}
-      -p LAUNCH_APB_ON_BIND={{ broker_launch_apb_on_bind }}
-      -p OUTPUT_REQUEST={{ broker_output_request }}
-      -p RECOVERY={{ broker_recovery }}
+      {{ cmd_process_asb_template }}
       &> {{ local_target_asb_template_processed }}
 
   - name: Running oc create on processed template
