@@ -299,7 +299,6 @@
       regexp: "kubletArguments:\n  fail-swap-on:\n  - \"false\""
       line: "kubeletArguments:\n  fail-swap-on:\n  - \"false\"\n  cgroup-driver:\n  - \"cgroupfs\"\n"
     when: update_cgroup_driver
-    become: true
 
   - name: Install python-passlib
     package:
@@ -391,4 +390,4 @@
       msg: "Failed to get the service-catalog project"
     when: oc_service_catalog == ""
 
-  - include: env_hacks.yml
+  - include_tasks: env_hacks.yml
